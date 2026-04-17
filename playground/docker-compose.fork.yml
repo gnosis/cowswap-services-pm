@@ -5,7 +5,7 @@ services:
       dockerfile: Dockerfile.chain
     restart: always
     entrypoint: /usr/local/bin/anvil
-    command: --fork-url ${ETH_RPC_URL} --block-time 12
+    command: --fork-url ${ETH_RPC_URL} --block-time 12 --chain-id 100
     environment:
       - ANVIL_IP_ADDR=0.0.0.0
     ports:
@@ -15,16 +15,19 @@ services:
       # with simple bytecode that always returns a solidity `true` value, alleviating
       # the requirement to register a solver's private key for the sake of testing on
       # a fork.
-      test: [ "CMD-SHELL", "
+      test: [
+          "CMD-SHELL",
+          "
           response=$$(wget -qO- --header='Content-Type: application/json' --post-data='{\"jsonrpc\":\"2.0\", \"method\":\"eth_blockNumber\", \"params\":[], \"id\":1}' http://127.0.0.1:8545);
           block=$$(echo $$response | sed -n 's/.*\"result\":\"\\([^\"\\]*\\)\".*/\\1/p');
           if [ -n \"$$block\" ] && [ \"$$block\" != \"0x0\" ] && [ \"$$block\" != \"null\" ]; then
-            /usr/local/bin/cast rpc -r http://127.0.0.1:8545 anvil_setCode 0x2c4c28DDBdAc9C5E7055b4C863b72eA0149D8aFE 0x600160005260206000F3;
-            exit 0;
+          /usr/local/bin/cast rpc -r http://127.0.0.1:8545 anvil_setCode 0x2c4c28DDBdAc9C5E7055b4C863b72eA0149D8aFE 0x600160005260206000F3;
+          exit 0;
           else
-            exit 1;
+          exit 1;
           fi;
-        " ]
+          ",
+        ]
       interval: 5s
       timeout: 30s
       retries: 5
@@ -39,17 +42,9 @@ services:
       - POSTGRES_HOST_AUTH_METHOD=trust
     command: -d postgres
     volumes:
-      - postgres:/var/lib/postgresql/data
+      - postgres:/var/lib/postgresql
     ports:
       - 5432:5432
-
-  adminer:
-    image: adminer
-    restart: always
-    ports:
-      - 8082:8080
-    depends_on:
-      - db
 
   db-migrations:
     build:
@@ -87,7 +82,12 @@ services:
       - TOML_TRACE_ERROR=1
       - TRACING_COLLECTOR_ENDPOINT=http://tempo:4317
     depends_on:
-      - db-migrations
+      chain:
+        condition: service_healthy
+      db:
+        condition: service_started
+      db-migrations:
+        condition: service_completed_successfully
     ports:
       - 8080:80
 
@@ -144,24 +144,7 @@ services:
       chain:
         condition: service_healthy
 
-  # baseline (solver engine)
-  baseline:
-    build:
-      context: ../
-      target: solvers
-      dockerfile: ./Dockerfile
-    restart: always
-    command: baseline --config /baseline.toml
-    environment:
-      - ADDR=0.0.0.0:80
-      - LOG=solvers=trace,shared=trace
-      - RUST_BACKTRACE=1
-      - TOML_TRACE_ERROR=1
-    volumes:
-      - ./baseline.toml:/baseline.toml
-    ports:
-      - 9001:80
-
+  # Our own solver that we develop for PMs.
   pysolver:
     build:
       context: ./pysolver
@@ -169,6 +152,10 @@ services:
     restart: always
     environment:
       - ADDR=0.0.0.0:80
+    volumes:
+      - ./pysolver:/app
+    command:
+      ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "80", "--reload"]
     ports:
       - 9002:80
 
@@ -191,23 +178,6 @@ services:
         - ETH_RPC_URL=http://127.0.0.1:8545
     ports:
       - 8001:80
-
-  tempo:
-    image: grafana/tempo:latest
-    ports:
-      - "4317:4317" # OTLP gRPC
-    command: [ "-config.file=/etc/tempo.yaml" ]
-    volumes:
-      - ./tempo.yaml:/etc/tempo.yaml
-
-  grafana:
-    image: grafana/grafana:latest
-    ports:
-      - "3000:3000"
-    environment:
-      - GF_AUTH_ANONYMOUS_ENABLED=true
-      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
-      - GF_AUTH_DISABLE_LOGIN_FORM=true
 
 volumes:
   postgres:
