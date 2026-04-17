@@ -14,5 +14,5 @@ Use these steps to run the local playground setup introduced in this PR:
 
 Notes:
 - Use Gnosis Chain token addresses (do not reuse Ethereum mainnet token addresses).
-- Rabby works better than MetaMask for this local setup because MetaMask blocks adding a local RPC with chain id `100`.
+- Rabby works better than MetaMask for this local setup because MetaMask blocks adding a local RPC with chain ID `100`.
 - Real settlement is not expected here; PySolver is used for playground quoting/testing.
