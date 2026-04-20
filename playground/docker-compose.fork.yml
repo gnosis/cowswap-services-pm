@@ -5,7 +5,7 @@ services:
       dockerfile: Dockerfile.chain
     restart: always
     entrypoint: /usr/local/bin/anvil
-    command: --fork-url ${ETH_RPC_URL} --block-time 12 --chain-id 100
+    command: --fork-url ${ETH_RPC_URL} --block-time 12 --chain-id 137
     environment:
       - ANVIL_IP_ADDR=0.0.0.0
     ports:
@@ -15,18 +15,17 @@ services:
       # with simple bytecode that always returns a solidity `true` value, alleviating
       # the requirement to register a solver's private key for the sake of testing on
       # a fork.
-      test: [
+      test:
+        [
           "CMD-SHELL",
-          "
-          response=$$(wget -qO- --header='Content-Type: application/json' --post-data='{\"jsonrpc\":\"2.0\", \"method\":\"eth_blockNumber\", \"params\":[], \"id\":1}' http://127.0.0.1:8545);
-          block=$$(echo $$response | sed -n 's/.*\"result\":\"\\([^\"\\]*\\)\".*/\\1/p');
-          if [ -n \"$$block\" ] && [ \"$$block\" != \"0x0\" ] && [ \"$$block\" != \"null\" ]; then
-          /usr/local/bin/cast rpc -r http://127.0.0.1:8545 anvil_setCode 0x2c4c28DDBdAc9C5E7055b4C863b72eA0149D8aFE 0x600160005260206000F3;
-          exit 0;
-          else
-          exit 1;
-          fi;
-          ",
+          " response=$$(wget -qO- --header='Content-Type: application/json'
+            --post-data='{\"jsonrpc\":\"2.0\", \"method\":\"eth_blockNumber\",
+            \"params\":[], \"id\":1}' http://127.0.0.1:8545); block=$$(echo
+            $$response | sed -n 's/.*\"result\":\"\\([^\"\\]*\\)\".*/\\1/p'); if
+            [ -n \"$$block\" ] && [ \"$$block\" != \"0x0\" ] && [ \"$$block\" !=
+            \"null\" ]; then /usr/local/bin/cast rpc -r http://127.0.0.1:8545
+            anvil_setCode 0x2c4c28DDBdAc9C5E7055b4C863b72eA0149D8aFE
+            0x600160005260206000F3; exit 0; else exit 1; fi; ",
         ]
       interval: 5s
       timeout: 30s
@@ -71,10 +70,10 @@ services:
       - SIMULATION_NODE_URL=http://chain:8545
       - EIP1271_SKIP_CREATION_VALIDATION=true
       - ENABLE_EIP1271_ORDERS=true
-      - PRICE_ESTIMATORS=None
-      - PRICE_ESTIMATION_DRIVERS=baseline|http://driver/baseline,pysolver|http://driver/pysolver
-      - NATIVE_PRICE_ESTIMATORS=baseline|http://driver/baseline,pysolver|http://driver/pysolver
-      - DRIVERS=baseline|http://driver/baseline,pysolver|http://driver/pysolver
+      - PRICE_ESTIMATION_DRIVERS=pysolver|http://driver/pysolver
+      - NATIVE_PRICE_ESTIMATORS=baseline|http://driver/baseline
+      - QUOTE_VERIFICATION=unverified
+      - DRIVERS=pysolver|http://driver/pysolver
       - BIND_ADDRESS=0.0.0.0:80
       - CHAIN_ID=$CHAIN
       - BASELINE_SOURCES=None
@@ -104,15 +103,13 @@ services:
       - SIMULATION_NODE_URL=http://chain:8545
       - SETTLE_INTERVAL=15s
       - GAS_ESTIMATORS=Native,Web3
-      - PRICE_ESTIMATORS=None
-      - NATIVE_PRICE_ESTIMATORS=baseline,pysolver
       - BLOCK_STREAM_POLL_INTERVAL=1s
       - NATIVE_PRICE_CACHE_MAX_UPDATE_SIZE=100
       - NATIVE_PRICE_CACHE_MAX_AGE=20m
       - SOLVER_TIME_LIMIT=5
-      - PRICE_ESTIMATION_DRIVERS=baseline|http://driver/baseline,pysolver|http://driver/pysolver
-      - NATIVE_PRICE_ESTIMATORS=baseline|http://driver/baseline,pysolver|http://driver/pysolver
-      - DRIVERS=baseline|http://driver/baseline|0xa0Ee7A142d267C1f36714E4a8F75612F20a79720,pysolver|http://driver/pysolver|0x23618e81E3f5cdF7f54C3d65f7FBc0aBf5B21E8f
+      - PRICE_ESTIMATION_DRIVERS=pysolver|http://driver/pysolver
+      - NATIVE_PRICE_ESTIMATORS=baseline|http://driver/baseline
+      - DRIVERS=pysolver|http://driver/pysolver|0x23618e81E3f5cdF7f54C3d65f7FBc0aBf5B21E8f
       - SKIP_EVENT_SYNC=true
       - BASELINE_SOURCES=None
       - RUST_BACKTRACE=1
@@ -144,6 +141,24 @@ services:
       chain:
         condition: service_healthy
 
+  # baseline (solver engine)
+  baseline:
+    build:
+      context: ../
+      target: solvers
+      dockerfile: ./Dockerfile
+    restart: always
+    command: baseline --config /baseline.toml
+    environment:
+      - ADDR=0.0.0.0:80
+      - LOG=solvers=trace,shared=trace
+      - RUST_BACKTRACE=1
+      - TOML_TRACE_ERROR=1
+    volumes:
+      - ./baseline.toml:/baseline.toml
+    ports:
+      - 9001:80
+
   # Our own solver that we develop for PMs.
   pysolver:
     build:
@@ -151,6 +166,8 @@ services:
       # cloned next to this repository.
       context: ../../prediction-market-cowswap-solver
       dockerfile: Dockerfile
+    env_file:
+      - ../../prediction-market-cowswap-solver/.env
     restart: always
     volumes:
       - ../../prediction-market-cowswap-solver:/app
@@ -165,6 +182,10 @@ services:
         "--port",
         "80",
         "--reload",
+        "--reload-dir",
+        "src",
+        "--reload-exclude",
+        ".venv",
       ]
     ports:
       - 9002:80

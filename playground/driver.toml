@@ -1,4 +1,11 @@
 [[solver]]
+name = "baseline" # Arbitrary name given to this solver, must be unique
+endpoint = "http://baseline"
+absolute-slippage = "40000000000000000" # Denominated in wei, optional
+relative-slippage = "0.1" # Percentage in the [0, 1] range
+account = "0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6" # Known test private key
+
+[[solver]]
 name = "pysolver" # Arbitrary name given to this solver, must be unique
 endpoint = "http://pysolver"
 absolute-slippage = "40000000000000000" # Denominated in wei, optional
@@ -13,11 +20,13 @@ mempool = "public"
 
 [liquidity]
 base-tokens = [
-    "0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d", # WXDAI
-    "0x6A023CCd1ff6F2045C3309768eAd9E68F978f6e1", # WETH
-    "0xDDAfbb505ad214D7b80b1f830fcCc89B60fb7A83", # USDC
-    "0x9C58BAcC331c9aa871AFD802DB6379a98e80CEdb", # GNO
+    "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174", # USDCe on Polygon
 ]
 
 [[liquidity.uniswap-v2]]
-preset = "honeyswap"
+# SushiSwap V2 router on Polygon (manual config to avoid chain-specific preset lookup).
+router = "0x1b02da8cb0d097eb8d57a175b88c7d8b47997506"
+# SushiSwap V2 pair init code hash.
+pool-code = "0xe18a34eb0e04b04f7a0ac29a6e80748dca96319b42c54d679cb821dca90c6303"
+# Keep empty-pair misses cached to reduce repeated failed pool lookups.
+missing-pool-cache-time = "1h"

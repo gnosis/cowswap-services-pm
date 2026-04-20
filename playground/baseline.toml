@@ -1,9 +1,6 @@
-chain-id = "100" # Gnosis Chain mainnet
+chain-id = "137" # Gnosis Chain mainnet
 base-tokens = [
-    "0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d", # WXDAI
-    "0x6A023CCd1ff6F2045C3309768eAd9E68F978f6e1", # WETH
-    "0xDDAfbb505ad214D7b80b1f830fcCc89B60fb7A83", # USDC
-    "0x9C58BAcC331c9aa871AFD802DB6379a98e80CEdb", # GNO
+   "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174", # USDCe on Polygon
 ]
 max-hops = 2
 max-partial-attempts = 5

@@ -6,9 +6,10 @@ WORKDIR /usr/src/app
 ARG REACT_APP_NETWORK_URL_1=https://rpc.mevblocker.io
 ARG REACT_APP_NETWORK_URL_5=https://ethereum-goerli.publicnode.com
 ARG REACT_APP_NETWORK_URL_100=https://gnosis.publicnode.com
+ARG REACT_APP_NETWORK_URL_137=https://polygon-rpc.com
 
 # Orderbook URL args
-ARG REACT_APP_ORDER_BOOK_URLS='{"1":"https://api.cow.fi/mainnet","100":"https://api.cow.fi/goerli","5":"https://api.cow.fi/xdai"}'
+ARG REACT_APP_ORDER_BOOK_URLS='{"1":"https://api.cow.fi/mainnet","100":"https://api.cow.fi/goerli","5":"https://api.cow.fi/xdai","137":"https://api.cow.fi/mainnet"}'
 
 # Install dependencies
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked apt-get update && \
@@ -34,6 +35,7 @@ ENV ETH_RPC_URL=$ETH_RPC_URL
 ENV REACT_APP_NETWORK_URL_1=$REACT_APP_NETWORK_URL_1
 ENV REACT_APP_NETWORK_URL_5=$REACT_APP_NETWORK_URL_5
 ENV REACT_APP_NETWORK_URL_100=$REACT_APP_NETWORK_URL_100
+ENV REACT_APP_NETWORK_URL_137=$REACT_APP_NETWORK_URL_137
 ENV REACT_APP_ORDER_BOOK_URLS=$REACT_APP_ORDER_BOOK_URLS
 
 # Update environment variables based on "chain" and "ETH_RPC_URL" and build the frontend
@@ -51,10 +53,15 @@ RUN if [ -n "$ETH_RPC_URL" ]; then \
     REACT_APP_NETWORK_URL_100=$ETH_RPC_URL \
     REACT_APP_ORDER_BOOK_URLS=$(echo $REACT_APP_ORDER_BOOK_URLS | jq --arg chain "100" '.[$chain]="http://127.0.0.1:8080"') \
     ;; \
+    137) \
+    REACT_APP_NETWORK_URL_137=$ETH_RPC_URL \
+    REACT_APP_ORDER_BOOK_URLS=$(echo $REACT_APP_ORDER_BOOK_URLS | jq --arg chain "137" '.[$chain]="http://127.0.0.1:8080"') \
+    ;; \
     esac; \
     NODE_OPTIONS="--max-old-space-size=4096" NX_NO_CLOUD=true pnpm build --env REACT_APP_NETWORK_URL_1=$REACT_APP_NETWORK_URL_1 \
     --env REACT_APP_NETWORK_URL_5=$REACT_APP_NETWORK_URL_5 \
     --env REACT_APP_NETWORK_URL_100=$REACT_APP_NETWORK_URL_100 \
+    --env REACT_APP_NETWORK_URL_137=$REACT_APP_NETWORK_URL_137 \
     --env REACT_APP_ORDER_BOOK_URLS="$REACT_APP_ORDER_BOOK_URLS"; \
     fi
 
