@@ -9,6 +9,13 @@ absolute-slippage = "40000000000000000"  # Denominated in wei, optional
 relative-slippage = "0.1"  # Percentage in the [0, 1] range
 account = "0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6"  # Known test private key
 
+[[solver]]
+name = "pysolver"  # Arbitrary name given to this solver, must be unique
+endpoint = "http://pysolver"
+absolute-slippage = "40000000000000000"  # Denominated in wei, optional
+relative-slippage = "0.1"  # Percentage in the [0, 1] range
+account = "0xdbda1821b80551c9d65939329250298aa3472ba22feea921c0cf5d620ea67b97"  # Known test private key
+
 [submission]
 gas-price-cap = "1000000000000"
 
@@ -17,15 +24,21 @@ url = "http://chain:8545"
 
 [liquidity]
 base-tokens = [
-  "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",  # WETH
-  "0x6B175474E89094C44Da98b954EedeAC495271d0F",  # DAI
-  "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",  # USDC
-  "0xdAC17F958D2ee523a2206206994597C13D831ec7",  # USDT
-  "0xc00e94Cb662C3520282E6f5717214004A7f26888",  # COMP
-  "0x9f8F72aA9304c8B593d555F12eF6589cC3A579A2",  # MKR
-  "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599",  # WBTC
-  "0x6810e776880C02933D47DB1b9fc05908e5386b96",  # GNO
+  "0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270",  # WPOL (wrapped MATIC)
+  "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174",  # USDC.e on Polygon
+  "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",  # USDC on Polygon
+  "0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619",  # WETH on Polygon
+  "0x1BFD67037B42Cf73acF2047067bd4F2C47D9BfD6",  # WBTC on Polygon
 ]
 
-[[liquidity.uniswap-v2]]  # Uniswap V2 configuration
-preset = "uniswap-v2"
+# QuickSwap on Polygon (Uniswap V2 fork)
+[[liquidity.uniswap-v2]]
+router = "0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff"
+pool-code = "0x96e8ac4277198ff8b6f785478aa9a39f403cb768dd02cbee326c3e7da348845f"
+missing-pool-cache-time = "10m"
+
+# SushiSwap on Polygon
+[[liquidity.uniswap-v2]]
+router = "0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506"
+pool-code = "0xe18a34eb0e04b04f7a0ac29a6e80748dca96319b42c54d679cb821dca90c6303"
+missing-pool-cache-time = "10m"

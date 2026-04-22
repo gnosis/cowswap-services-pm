@@ -18,13 +18,26 @@ name = "baseline"
 url = "http://driver/baseline"
 address = "0xa0Ee7A142d267C1f36714E4a8F75612F20a79720"
 
+[[drivers]]
+name = "pysolver"
+url = "http://driver/pysolver"
+address = "0x23618e81E3f5cdF7f54C3d65f7FBc0aBf5B21E8f"
+
 [fee-policies]
 
-[order-quoting]
-price-estimation-drivers = [{ name = "baseline", url = "http://driver/baseline" }]
+[database]
+write-url = "%DB_WRITE_URL"
+read-url = "%DB_READ_URL"
+
+[ethflow]
+skip-event-sync = true
 
 [native-price-estimation]
 estimators = [[{ type = "Driver", name = "baseline", url = "http://driver/baseline" }]]
 
 [native-price-estimation.cache]
 max-age = "20m"
+
+[order-quoting]
+# price-estimation-drivers = [{ name = "baseline", url = "http://driver/baseline" }]
+price-estimation-drivers = [{ name = "pysolver", url = "http://driver/pysolver" }]

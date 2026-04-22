@@ -5,8 +5,10 @@ services:
       dockerfile: Dockerfile.chain
     restart: always
     entrypoint: /usr/local/bin/anvil
-    command: --fork-url ${ETH_RPC_URL} --block-time 12
+    command: --fork-url ${ETH_RPC_URL} --block-time 12 --chain-id ${CHAIN}
     environment:
+      - ETH_RPC_URL
+      - CHAIN
       - ANVIL_IP_ADDR=0.0.0.0
     ports:
       - 8545:8545
@@ -15,18 +17,19 @@ services:
       # with simple bytecode that always returns a solidity `true` value, alleviating
       # the requirement to register a solver's private key for the sake of testing on
       # a fork.
-      test: [
+      test:
+        [
           "CMD-SHELL",
-          "
-          response=$$(wget -qO- --header='Content-Type: application/json' --post-data='{\"jsonrpc\":\"2.0\", \"method\":\"eth_blockNumber\", \"params\":[], \"id\":1}' http://127.0.0.1:8545);
-          block=$$(echo $$response | sed -n 's/.*\"result\":\"\\([^\"\\]*\\)\".*/\\1/p');
-          if [ -n \"$$block\" ] && [ \"$$block\" != \"0x0\" ] && [ \"$$block\" != \"null\" ]; then
-          /usr/local/bin/cast rpc -r http://127.0.0.1:8545 anvil_setCode 0x2c4c28DDBdAc9C5E7055b4C863b72eA0149D8aFE 0x600160005260206000F3;
-          exit 0;
-          else
-          exit 1;
-          fi;
-          ",
+          " response=$$(wget -qO- --header='Content-Type: application/json'
+            --post-data='{\"jsonrpc\":\"2.0\", \"method\":\"eth_blockNumber\",
+            \"params\":[], \"id\":1}' http://127.0.0.1:8545); block=$$(echo
+            $$response | sed -n 's/.*\"result\":\"\\([^\"\\]*\\)\".*/\\1/p'); if
+            [ -n \"$$block\" ] && [ \"$$block\" != \"0x0\" ] && [ \"$$block\" !=
+            \"null\" ]; then echo \"Chain ID: $$(/usr/local/bin/cast chain-id -r
+            http://127.0.0.1:8545)\"; /usr/local/bin/cast rpc -r
+            http://127.0.0.1:8545 anvil_setCode
+            0x2c4c28DDBdAc9C5E7055b4C863b72eA0149D8aFE 0x600160005260206000F3;
+            exit 0; else exit 1; fi; ",
         ]
       interval: 5s
       timeout: 30s
@@ -45,14 +48,11 @@ services:
       - postgres:/var/lib/postgresql/data
     ports:
       - 5432:5432
-
-  adminer:
-    image: adminer
-    restart: always
-    ports:
-      - 8082:8080
-    depends_on:
-      - db
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER}" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   db-migrations:
     build:
@@ -63,7 +63,8 @@ services:
     environment:
       - FLYWAY_URL=jdbc:postgresql://db/?user=${POSTGRES_USER}&password=${POSTGRES_PASSWORD}
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
   orderbook:
     build:
@@ -71,8 +72,9 @@ services:
       target: orderbook
       dockerfile: ./Dockerfile
     restart: always
-    command: ["--config", "/orderbook.toml"]
+    command: [ "--config", "/orderbook.toml" ]
     environment:
+      - ETH_RPC_URL=http://chain:8545
       - DB_WRITE_URL=postgres://db:5432/?user=${POSTGRES_USER}&password=${POSTGRES_PASSWORD}
       - DB_READ_URL=postgres://db:5432/?user=${POSTGRES_USER}&password=${POSTGRES_PASSWORD}
       - RUST_BACKTRACE=0
@@ -84,7 +86,10 @@ services:
       - ../:/src
       - ./configs/orderbook.toml:/orderbook.toml
     depends_on:
-      - db-migrations
+      db-migrations:
+        condition: service_completed_successfully
+      chain:
+        condition: service_healthy
     ports:
       - 8080:80 # API
       - 9586:9586 # metrics
@@ -96,7 +101,7 @@ services:
       target: autopilot
       dockerfile: ./Dockerfile
     restart: always
-    command: ["--config", "/autopilot.toml"]
+    command: [ "--config", "/autopilot.toml" ]
     environment:
       - DB_WRITE_URL=postgres://db:5432/?user=${POSTGRES_USER}&password=${POSTGRES_PASSWORD}
       - DB_READ_URL=postgres://db:5432/?user=${POSTGRES_USER}&password=${POSTGRES_PASSWORD}
@@ -122,13 +127,12 @@ services:
       target: driver
       dockerfile: ./Dockerfile
     restart: always
-    command: ["--config", "/driver.toml"]
+    command: [ "--config", "/driver.toml" ]
     environment:
       - ETHRPC=http://chain:8545
       - ADDR=0.0.0.0:80
       - RUST_BACKTRACE=1
       - TOML_TRACE_ERROR=1
-      - TRACING_COLLECTOR_ENDPOINT=http://tempo:4317
       - TOKIO_CONSOLE=true
       - TOKIO_CONSOLE_RETENTION=600sec
       - TOKIO_CONSOLE_BIND=0.0.0.0:6669
@@ -148,7 +152,7 @@ services:
       target: solvers
       dockerfile: ./Dockerfile
     restart: always
-    command: ["baseline", "--config", "/baseline.toml"]
+    command: [ "baseline", "--config", "/baseline.toml" ]
     environment:
       - ADDR=0.0.0.0:80
       - LOG=solvers=trace,shared=trace
@@ -162,6 +166,34 @@ services:
     ports:
       - 9001:80 # API & metrics
       - 6672:6669 # tokio console
+
+  pysolver:
+    build:
+      # Path assumes that you have https://github.com/gnosis/prediction-market-cowswap-solver
+      # cloned next to this repository.
+      context: ../../prediction-market-cowswap-solver
+      dockerfile: Dockerfile
+    env_file:
+      - ../../prediction-market-cowswap-solver/.env
+    restart: always
+    volumes:
+      - ../../prediction-market-cowswap-solver/src:/app/src
+    command:
+      [
+        "uv",
+        "run",
+        "uvicorn",
+        "src.main:app",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "80",
+        "--reload",
+        "--reload-dir",
+        "src",
+      ]
+    ports:
+      - 9002:80
 
   frontend:
     build:
@@ -184,7 +216,7 @@ services:
     volumes:
       - sourcify-postgres:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U sourcify"]
+      test: [ "CMD-SHELL", "pg_isready -U sourcify" ]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -209,7 +241,7 @@ services:
     ports:
       - 5555:5555
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5555/health"]
+      test: [ "CMD", "curl", "-f", "http://localhost:5555/health" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -247,7 +279,7 @@ services:
     image: grafana/tempo:latest
     ports:
       - "4317:4317" # OTLP gRPC
-    command: ["-config.file=/etc/tempo.yaml"]
+    command: [ "-config.file=/etc/tempo.yaml" ]
     volumes:
       - ./tempo.yaml:/etc/tempo.yaml
 

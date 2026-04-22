@@ -17,7 +17,7 @@ RUN git clone https://github.com/cowprotocol/cowswap . \
     && pnpm install --frozen-lockfile
 
 # Build environment variables
-ENV REACT_APP_ORDER_BOOK_URLS='{"1":"http://localhost:8080"}'
+ENV REACT_APP_ORDER_BOOK_URLS='{"1":"http://localhost:8080","100":"http://localhost:8080","137":"http://localhost:8080"}'
 ENV REACT_APP_BLOCK_EXPLORER_URL=http://localhost:8003
 
 # Build the frontend

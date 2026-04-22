@@ -10,8 +10,9 @@ ARG CARGO_BUILD_FEATURES=""
 ARG RUSTFLAGS=""
 
 # Install dependencies
-RUN --mount=type=cache,target=/var/cache/apt,sharing=locked apt-get update && \
-    apt-get install -y git libssl-dev pkg-config build-essential
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends git libssl-dev pkg-config build-essential && \
+    rm -rf /var/lib/apt/lists/*
 # Install Rust toolchain
 RUN rustup install stable && rustup default stable
 
@@ -29,9 +30,9 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry --mount=type=cache,targe
 
 # Create an intermediate image to extract the binaries
 FROM docker.io/debian:bookworm-slim AS intermediate
-RUN --mount=type=cache,target=/var/cache/apt,sharing=locked apt-get update && \
-    apt-get install -y ca-certificates tini gettext-base && \
-    apt-get clean
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends ca-certificates tini gettext-base && \
+    rm -rf /var/lib/apt/lists/*
 
 FROM intermediate AS autopilot
 COPY --from=cargo-build /autopilot /usr/local/bin/autopilot
