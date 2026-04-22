@@ -5,9 +5,6 @@ bind-address = "0.0.0.0:80"
 node-url = "http://chain:8545"
 simulation-node-url = "http://chain:8545"
 
-[shared.tracing]
-collector-endpoint = "http://tempo:4317"
-
 [database]
 write-url = "%DB_WRITE_URL"
 read-url = "%DB_READ_URL"
