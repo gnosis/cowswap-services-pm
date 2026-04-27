@@ -31,11 +31,13 @@ read-url = "%DB_READ_URL"
 skip-event-sync = true
 
 [native-price-estimation]
-estimators = [[{ type = "Driver", name = "baseline", url = "http://driver/baseline" }]]
+estimators = [[
+    { type = "Driver", name = "pysolver", url = "http://driver/pysolver" },
+    { type = "Driver", name = "baseline", url = "http://driver/baseline" },
+]]
 
 [native-price-estimation.cache]
-max-age = "20m"
+max-age = "90s"
 
 [order-quoting]
-# price-estimation-drivers = [{ name = "baseline", url = "http://driver/baseline" }]
 price-estimation-drivers = [{ name = "pysolver", url = "http://driver/pysolver" }]

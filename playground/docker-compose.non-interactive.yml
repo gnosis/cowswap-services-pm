@@ -5,7 +5,7 @@ services:
       dockerfile: Dockerfile.chain
     restart: always
     entrypoint: /usr/local/bin/anvil
-    command: --fork-url ${ETH_RPC_URL} --block-time 12 --chain-id ${CHAIN}
+    command: --fork-url ${ETH_RPC_URL} --block-time 5 --chain-id ${CHAIN}
     environment:
       - ETH_RPC_URL
       - CHAIN
@@ -176,6 +176,9 @@ services:
     env_file:
       # Must define SOLVER_PRIVATE_KEY; see playground/REPRODUCE.md step "Configure env".
       - ../../prediction-market-cowswap-solver/.env
+    environment:
+      - WEB3_RPC_URL=http://chain:8545
+      - ORDERBOOK_API=http://orderbook:80/api/v1
     restart: always
     volumes:
       - ../../prediction-market-cowswap-solver/src:/app/src
@@ -195,6 +198,19 @@ services:
       ]
     ports:
       - 9002:80
+
+  migration-ui:
+    build:
+      context: ../../prediction-market-cowswap-solver/frontend
+      dockerfile: Dockerfile
+    restart: always
+    volumes:
+      - ../../prediction-market-cowswap-solver/frontend/src:/app/src
+      - ../../prediction-market-cowswap-solver/frontend/index.html:/app/index.html
+    ports:
+      - 9003:5173
+    depends_on:
+      - pysolver
 
   frontend:
     build:
