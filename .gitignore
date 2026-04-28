@@ -5,4 +5,5 @@
 /.idea
 **/testing.*.toml
 /playground/.env
+/playground/configs/driver.toml
 .env.claude

@@ -127,7 +127,13 @@ services:
       target: driver
       dockerfile: ./Dockerfile
     restart: always
-    command: [ "--config", "/driver.toml" ]
+    entrypoint:
+      [
+        "/bin/sh",
+        "-c",
+        "/bin/sh /src/playground/generate_driver_config.sh && exec driver
+          --config /src/playground/configs/driver.toml",
+      ]
     environment:
       - ETHRPC=http://chain:8545
       - ADDR=0.0.0.0:80
@@ -137,7 +143,8 @@ services:
       - TOKIO_CONSOLE_RETENTION=600sec
       - TOKIO_CONSOLE_BIND=0.0.0.0:6669
     volumes:
-      - ./configs/driver.toml:/driver.toml
+      - ../:/src
+      - ../../prediction-market-cowswap-solver/.env:/src/../prediction-market-cowswap-solver/.env:ro
     ports:
       - 9000:80 # API & metrics
       - 6671:6669 # tokio console
