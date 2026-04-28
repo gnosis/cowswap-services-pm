@@ -7,14 +7,15 @@
   - Our own polymarket-focued migration UI at `http://localhost:9003`
   - Our own pysolver API at `http://localhost:9002`
 - `docker-compose.non-interactive.yml` assumes that `https://github.com/gnosis/prediction-market-cowswap-solver` is cloned in the same parent directory as this repostiory, as it mounts the source codes for easier local development.
+- The driver config is generated automatically from `prediction-market-cowswap-solver/.env` when the `driver` service starts in `docker-compose.non-interactive.yml`, so secrets do not need to be committed into `playground/configs/driver.toml`.
 - After you spin this up, you need to:
   1. Deploy pysolver's safe using `python scripts/deploy_solver_safe.py` in the `prediction-market-cowswap-solver` cloned repository.
+  1.5 Ensure `SOLVER_PRIVATE_KEY` are present in `prediction-market-cowswap-solver/.env`. The non-interactive compose setup generates `playground/configs/driver.toml` automatically before starting the driver.
   2. Add WPOL funds to it using
 
-  ```bash
-
-SAFE=0x684DEE0C2cBb3779eBF3a37DAf5bB766cA1C4605
-WPOL=0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270
+```bash
+SAFE=0x684DEE0C2cBb3779eBF3a37DAf5bB766cA1C4605 # Use your deployed safe address here.
+WPOL=0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270 # You can switch to other ERC20.
 RPC=<http://localhost:8545>
 
 cast rpc anvil_setBalance $SAFE 0x8AC7230489E80000 --rpc-url $RPC
@@ -23,10 +24,9 @@ cast rpc anvil_impersonateAccount $SAFE --rpc-url $RPC
 
 cast send $WPOL "deposit()" \
   --from $SAFE \
-  --value 1000000000 \
+  --value 10000000000 \
   --unlocked \
   --rpc-url $RPC
 
 cast rpc anvil_stopImpersonatingAccount $SAFE --rpc-url $RPC
-
-  ```
+```

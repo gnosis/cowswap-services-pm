@@ -7,14 +7,14 @@ name = "baseline"  # Arbitrary name given to this solver, must be unique
 endpoint = "http://baseline"
 absolute-slippage = "40000000000000000"  # Denominated in wei, optional
 relative-slippage = "0.1"  # Percentage in the [0, 1] range
-account = "0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6"  # Known test private key
+account = "{{BASELINE_PRIVATE_KEY}}"  # Loaded from local env during config generation
 
 [[solver]]
 name = "pysolver"  # Arbitrary name given to this solver, must be unique
 endpoint = "http://pysolver"
 absolute-slippage = "40000000000000000"  # Denominated in wei, optional
 relative-slippage = "0.1"  # Percentage in the [0, 1] range
-account = "0xdbda1821b80551c9d65939329250298aa3472ba22feea921c0cf5d620ea67b97"  # Known test private key
+account = "{{SOLVER_PRIVATE_KEY}}"  # Loaded from local env during config generation
 
 [submission]
 gas-price-cap = "1000000000000"
